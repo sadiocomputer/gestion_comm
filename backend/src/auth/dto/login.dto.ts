@@ -1,10 +1,8 @@
-import { IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsString, MaxLength, MinLength } from 'class-validator';
+import { IsGuineaPhone } from '../../common/decorators/is-guinea-phone.decorator';
 
 export class LoginDto {
-  @IsString()
-  @Matches(/^[0-9+\s]{8,20}$/, {
-    message: 'Numéro de téléphone invalide.',
-  })
+  @IsGuineaPhone()
   phone: string;
 
   @IsString()
