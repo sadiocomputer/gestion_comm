@@ -1,1 +1,35 @@
+@import '@fontsource-variable/inter';
 @import 'tailwindcss';
+
+/*
+ * Identité visuelle de l'application.
+ * Couleurs de sens (utilisées via les composants de components/ui) :
+ *   bleu   = action principale     vert  = argent reçu, succès
+ *   orange = attente, alerte       rouge = dette, erreur, action sensible
+ */
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
+  --color-canvas: #f5f6f8;
+}
+
+@layer base {
+  html {
+    background-color: var(--color-canvas);
+    color: var(--color-slate-800);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Tailwind 4 remet le curseur par défaut sur les boutons : on rétablit la main. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  select:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* Contour de focus bien visible pour la navigation au clavier. */
+  :focus-visible {
+    outline: 3px solid var(--color-blue-400);
+    outline-offset: 2px;
+  }
+}

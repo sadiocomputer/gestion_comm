@@ -1,31 +1,50 @@
+import { CircleCheck, CircleSlash, UserCog, UserPlus } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Link, useLocation, useSearchParams } from 'react-router'
 import { useAuth } from '../auth/useAuth'
 import { Alert } from '../components/Alert'
+import { Avatar } from '../components/ui/Avatar'
+import { Badge } from '../components/ui/Badge'
+import { ButtonLink } from '../components/ui/Button'
+import { DataList } from '../components/ui/DataList'
+import { LoadingState } from '../components/ui/Loading'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Pagination } from '../components/ui/Pagination'
 import { api, getErrorMessage, type Paginated, type UserDetail } from '../lib/api'
-import { formatDate, formatPhone } from '../lib/format'
+import { formatPhone } from '../lib/format'
+import { useListParams } from '../lib/useListParams'
 
-const PAGE_SIZE = 20
+function StatusBadge({ active }: { active: boolean }) {
+  return active ? (
+    <Badge tone="green" icon={CircleCheck}>Actif</Badge>
+  ) : (
+    <Badge tone="slate" icon={CircleSlash}>Désactivé</Badge>
+  )
+}
+
+function RoleBadges({ user }: { user: UserDetail }) {
+  if (user.roles.length === 0) return <Badge tone="orange">Aucun rôle</Badge>
+  return (
+    <span className="flex flex-wrap gap-1.5">
+      {user.roles.map((r) => (
+        <Badge key={r.id} tone="violet">{r.name}</Badge>
+      ))}
+    </span>
+  )
+}
 
 export function UsersPage() {
   const auth = useAuth()
-  const location = useLocation()
-  const notice = (location.state as { notice?: string } | null)?.notice
-
-  // La page courante est dans l'URL (?page=2) : le bouton Retour fonctionne.
-  const [searchParams, setSearchParams] = useSearchParams()
-  const page = Math.max(1, Number(searchParams.get('page')) || 1)
-
+  const list = useListParams()
   const [result, setResult] = useState<Paginated<UserDetail> | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
     api
-      .get<Paginated<UserDetail>>('/users', { params: { page, limit: PAGE_SIZE } })
-      .then((response) => {
+      .get<Paginated<UserDetail>>('/users', { params: { page: list.page, limit: 20 } })
+      .then(({ data }) => {
         if (cancelled) return
-        setResult(response.data)
+        setResult(data)
         setError(null)
       })
       .catch((err: unknown) => {
@@ -34,108 +53,73 @@ export function UsersPage() {
     return () => {
       cancelled = true
     }
-  }, [page])
+  }, [list.page])
 
-  const totalPages = result ? Math.max(1, Math.ceil(result.total / result.limit)) : 1
+  const myId = auth.status === 'authenticated' ? auth.user.id : null
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-slate-900">Utilisateurs</h1>
-        {auth.can('users.create') && (
-          <Link
-            to="/users/new"
-            className="rounded-lg bg-blue-700 px-4 py-2 font-medium text-white hover:bg-blue-800"
-          >
-            Nouvel utilisateur
-          </Link>
-        )}
-      </div>
+    <div>
+      <PageHeader
+        title="Utilisateurs"
+        description="Les personnes qui utilisent l'application et leur rôle."
+        icon={UserCog}
+        tone="violet"
+        actions={
+          auth.can('users.create') && (
+            <ButtonLink to="/users/new" icon={UserPlus}>
+              Nouvel utilisateur
+            </ButtonLink>
+          )
+        }
+      />
 
-      {notice && <Alert tone="success">{notice}</Alert>}
       {error && <Alert tone="error">{error}</Alert>}
-
-      {!result && !error && <p className="text-slate-500">Chargement…</p>}
+      {!result && !error && <LoadingState />}
 
       {result && (
-        <>
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-            <table className="w-full min-w-[32rem] text-left text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50 text-slate-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Nom</th>
-                  <th className="px-4 py-3 font-medium">Téléphone</th>
-                  <th className="px-4 py-3 font-medium">Rôles</th>
-                  <th className="px-4 py-3 font-medium">Statut</th>
-                  <th className="px-4 py-3 font-medium">Créé le</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {result.data.map((user) => (
-                  <tr key={user.id}>
-                    <td className="px-4 py-3 font-medium">
-                      <Link to={`/users/${user.id}`} className="text-blue-700 hover:underline">
-                        {user.name}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-slate-700">{formatPhone(user.phone)}</td>
-                    <td className="px-4 py-3 text-slate-700">
-                      {user.roles.length > 0 ? (
-                        user.roles.map((role) => role.name).join(', ')
-                      ) : (
-                        <span className="text-slate-400">Aucun</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {user.isActive ? (
-                        <span className="rounded-full bg-green-50 px-2 py-0.5 text-green-800">
-                          Actif
-                        </span>
-                      ) : (
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">
-                          Désactivé
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700">{formatDate(user.createdAt)}</td>
-                  </tr>
-                ))}
-                {result.data.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
-                      Aucun utilisateur sur cette page.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex items-center justify-between text-sm text-slate-600">
-            <span>
-              {result.total} utilisateur{result.total > 1 ? 's' : ''} · page {page} sur{' '}
-              {totalPages}
-            </span>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                disabled={page <= 1}
-                onClick={() => setSearchParams({ page: String(page - 1) })}
-                className="rounded-md border border-slate-300 bg-white px-3 py-1.5 hover:bg-slate-100 disabled:opacity-50"
-              >
-                Précédent
-              </button>
-              <button
-                type="button"
-                disabled={page >= totalPages}
-                onClick={() => setSearchParams({ page: String(page + 1) })}
-                className="rounded-md border border-slate-300 bg-white px-3 py-1.5 hover:bg-slate-100 disabled:opacity-50"
-              >
-                Suivant
-              </button>
-            </div>
-          </div>
-        </>
+        <div className="space-y-4">
+          <DataList
+            rows={result.data}
+            rowKey={(u) => u.id}
+            rowHref={(u) => `/users/${u.id}`}
+            isMuted={(u) => !u.isActive}
+            columns={[
+              {
+                header: 'Utilisateur',
+                cell: (u) => (
+                  <span className="flex items-center gap-3">
+                    <Avatar name={u.name} />
+                    <span>
+                      <span className="block font-semibold text-slate-900">
+                        {u.name}
+                        {u.id === myId && <span className="ml-2 text-sm font-normal text-slate-500">(vous)</span>}
+                      </span>
+                      <span className="block text-sm text-slate-500">{formatPhone(u.phone)}</span>
+                    </span>
+                  </span>
+                ),
+              },
+              { header: 'Rôle', cell: (u) => <RoleBadges user={u} /> },
+              { header: 'Statut', cell: (u) => <StatusBadge active={u.isActive} /> },
+            ]}
+            mobileCard={(u) => (
+              <div className="flex items-center gap-3">
+                <Avatar name={u.name} />
+                <div className="min-w-0 space-y-1.5">
+                  <p className="truncate font-semibold text-slate-900">
+                    {u.name}
+                    {u.id === myId && <span className="ml-1.5 text-sm font-normal text-slate-500">(vous)</span>}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    <RoleBadges user={u} />
+                    {!u.isActive && <StatusBadge active={false} />}
+                  </div>
+                </div>
+              </div>
+            )}
+          />
+          <Pagination page={list.page} total={result.total} limit={result.limit} itemLabel={['utilisateur', 'utilisateurs']} onPage={list.setPage} />
+        </div>
       )}
     </div>
   )

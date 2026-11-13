@@ -39,6 +39,207 @@ export type Role = {
   userCount: number
 }
 
+export type Client = {
+  id: number
+  name: string
+  phone: string | null
+  address: string | null
+  notes: string | null
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export type Supplier = {
+  id: number
+  name: string
+  contactName: string | null
+  phone: string | null
+  address: string | null
+  notes: string | null
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export type ExpenseCategory = {
+  id: number
+  name: string
+  expenseCount: number
+}
+
+export type Expense = {
+  id: number
+  amount: number
+  description: string
+  /** "AAAA-MM-JJ" */
+  expenseDate: string
+  method: PaymentMethod
+  reference: string | null
+  status: 'VALID' | 'CANCELLED'
+  createdAt: string
+  cancelledAt: string | null
+  cancelReason: string | null
+  category: { id: number; name: string }
+  user: { id: number; name: string }
+  cancelledBy: { id: number; name: string } | null
+}
+
+export type Unit = {
+  id: number
+  name: string
+  productCount: number
+}
+
+export type Category = {
+  id: number
+  name: string
+  description: string | null
+  productCount: number
+}
+
+export type Product = {
+  id: number
+  name: string
+  sku: string | null
+  categoryId: number | null
+  category: { id: number; name: string } | null
+  unit: string
+  /** null si l'utilisateur n'a pas la permission products.read_cost */
+  purchasePrice: number | null
+  salePrice: number
+  quantity: number
+  minStock: number
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export type MovementType = 'IN' | 'OUT' | 'ADJUSTMENT' | 'SALE' | 'SALE_CANCEL'
+
+export type SaleStatus = 'COMPLETED' | 'CANCELLED'
+export type PaymentState = 'UNPAID' | 'PARTIAL' | 'PAID'
+export type PaymentMethod = 'CASH' | 'ORANGE_MONEY' | 'MTN_MOMO' | 'BANK' | 'OTHER'
+
+type PersonRef = { id: number; name: string }
+
+/** Champs communs aux paiements clients et fournisseurs. */
+export type PaymentBase = {
+  id: number
+  amount: number
+  method: PaymentMethod
+  reference: string | null
+  notes: string | null
+  status: 'VALID' | 'CANCELLED'
+  createdAt: string
+  cancelledAt: string | null
+  cancelReason: string | null
+  user: PersonRef
+  cancelledBy: PersonRef | null
+}
+
+export type ClientPayment = PaymentBase & {
+  sale: { id: number; number: string | null }
+  client: PersonRef | null
+}
+
+export type SupplierPayment = PaymentBase & { supplier: PersonRef }
+
+export type Receivable = {
+  client: PersonRef & { phone: string | null }
+  balance: number
+  saleCount: number
+  oldestSaleAt: string
+}
+
+export type SupplierDebt = {
+  supplier: PersonRef & { phone: string | null }
+  purchases: number
+  paid: number
+  balance: number
+}
+
+export type ClientAccount = {
+  totalSales: number
+  totalPaid: number
+  balance: number
+  unpaidSales: {
+    id: number
+    number: string | null
+    createdAt: string
+    total: number
+    amountPaid: number
+    balance: number
+  }[]
+  /** Nombre total de factures à encaisser (la liste ci-dessus n'en contient qu'une page). */
+  unpaidCount: number
+  page: number
+  limit: number
+}
+
+/** Totaux seulement : l'historique se lit avec /purchases et /payments (paginés). */
+export type SupplierAccount = {
+  totalPurchases: number
+  totalPaid: number
+  balance: number
+}
+
+export type SupplierPurchase = {
+  id: number
+  createdAt: string
+  product: { id: number; name: string; unit: string }
+  quantity: number
+  unitCost: number | null
+  total: number | null
+}
+
+export type SaleSummary = {
+  id: number
+  number: string
+  status: SaleStatus
+  subtotal: number
+  discount: number
+  total: number
+  amountPaid: number
+  balance: number
+  paymentStatus: PaymentState
+  createdAt: string
+  client: { id: number; name: string; phone: string | null } | null
+  user: { id: number; name: string }
+}
+
+export type SaleDetail = SaleSummary & {
+  notes: string | null
+  cancelledAt: string | null
+  cancelReason: string | null
+  cancelledBy: { id: number; name: string } | null
+  items: {
+    id: number
+    productId: number
+    productName: string
+    unit: string
+    quantity: number
+    unitPrice: number
+    lineTotal: number
+    unitCost: number | null
+  }[]
+  payments: ClientPayment[]
+}
+
+export type StockMovement = {
+  id: number
+  type: MovementType
+  quantityChange: number
+  quantityBefore: number
+  quantityAfter: number
+  unitCost: number | null
+  reason: string | null
+  createdAt: string
+  product: { id: number; name: string; unit: string }
+  supplier: { id: number; name: string } | null
+  user: { id: number; name: string }
+}
+
 export type Permission = {
   id: number
   code: string

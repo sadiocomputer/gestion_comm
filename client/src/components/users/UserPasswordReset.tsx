@@ -1,37 +1,41 @@
+import { KeyRound } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { api, getErrorMessage } from '../../lib/api'
 import { Alert } from '../Alert'
-import { TextField } from '../TextField'
+import { Button } from '../ui/Button'
+import { Card, CardBody, CardHeader } from '../ui/Card'
+import { Modal } from '../ui/Modal'
+import { PasswordField } from '../ui/PasswordField'
+import { useToast } from '../ui/useToast'
 
+/** Réinitialisation du mot de passe d'un autre utilisateur (oubli). */
 export function UserPasswordReset({ userId }: { userId: number }) {
-  const [newPassword, setNewPassword] = useState('')
+  const toast = useToast()
+  const [open, setOpen] = useState(false)
+  const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  const tooShort = password.length > 0 && password.length < 8
+  const mismatch = confirmPassword.length > 0 && confirmPassword !== password
+
+  function close() {
+    setOpen(false)
+    setPassword('')
+    setConfirmPassword('')
+    setError(null)
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setError(null)
-    setSuccess(null)
-
-    if (newPassword.length < 8) {
-      setError('Le mot de passe doit contenir au moins 8 caractères.')
-      return
-    }
-    if (newPassword !== confirmPassword) {
-      setError('La confirmation ne correspond pas au mot de passe.')
-      return
-    }
-
+    if (password.length < 8 || password !== confirmPassword) return
     setSubmitting(true)
+    setError(null)
     try {
-      await api.patch(`/users/${userId}/password`, { newPassword })
-      setSuccess(
-        "Mot de passe réinitialisé. Communique-le à l'utilisateur : ses sessions ont été fermées.",
-      )
-      setNewPassword('')
-      setConfirmPassword('')
+      await api.patch(`/users/${userId}/password`, { newPassword: password })
+      toast.success('Nouveau mot de passe enregistré. Communiquez-le à la personne.')
+      close()
     } catch (err) {
       setError(getErrorMessage(err))
     } finally {
@@ -40,38 +44,40 @@ export function UserPasswordReset({ userId }: { userId: number }) {
   }
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6">
-      <h2 className="text-lg font-semibold text-slate-900">Réinitialiser le mot de passe</h2>
-      <p className="mt-1 text-sm text-slate-600">
-        À utiliser quand la personne a oublié son mot de passe.
-      </p>
-      <form onSubmit={handleSubmit} className="mt-4 max-w-md space-y-4">
-        <TextField
-          label="Nouveau mot de passe (8 caractères minimum)"
-          type="password"
-          autoComplete="new-password"
-          required
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-        />
-        <TextField
-          label="Confirmer le mot de passe"
-          type="password"
-          autoComplete="new-password"
-          required
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-        />
-        {error && <Alert tone="error">{error}</Alert>}
-        {success && <Alert tone="success">{success}</Alert>}
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded-lg border border-slate-300 px-4 py-2 text-slate-800 hover:bg-slate-100 disabled:opacity-60"
-        >
-          {submitting ? 'Enregistrement…' : 'Réinitialiser'}
-        </button>
-      </form>
-    </section>
+    <Card>
+      <CardHeader icon={KeyRound} tone="orange" title="Mot de passe oublié ?" description="Donnez-lui un nouveau mot de passe." />
+      <CardBody>
+        <Button variant="secondary" icon={KeyRound} onClick={() => setOpen(true)}>
+          Définir un nouveau mot de passe
+        </Button>
+      </CardBody>
+
+      <Modal open={open} onClose={close} title="Nouveau mot de passe">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <PasswordField
+            label="Nouveau mot de passe"
+            autoComplete="new-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            error={tooShort ? '8 caractères minimum' : null}
+            hint="8 caractères minimum"
+          />
+          <PasswordField
+            label="Retapez le mot de passe"
+            autoComplete="new-password"
+            required
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            error={mismatch ? 'Les deux mots de passe sont différents' : null}
+          />
+          <Alert tone="info">La personne sera déconnectée de tous ses appareils.</Alert>
+          {error && <Alert tone="error">{error}</Alert>}
+          <Button type="submit" icon={KeyRound} fullWidth size="lg" loading={submitting} disabled={tooShort || mismatch}>
+            Enregistrer le mot de passe
+          </Button>
+        </form>
+      </Modal>
+    </Card>
   )
 }

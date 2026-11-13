@@ -4,8 +4,17 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { ClientsModule } from './clients/clients.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { ExpensesModule } from './expenses/expenses.module';
 import { validateEnv } from './config/env.validation';
+import { PaymentsModule } from './payments/payments.module';
+import { ProductsModule } from './products/products.module';
+import { ReportsModule } from './reports/reports.module';
 import { RolesModule } from './roles/roles.module';
+import { SalesModule } from './sales/sales.module';
+import { StocksModule } from './stocks/stocks.module';
+import { SuppliersModule } from './suppliers/suppliers.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -28,6 +37,15 @@ import { UsersModule } from './users/users.module';
     UsersModule,
     RolesModule,
     AuthModule,
+    ClientsModule,
+    SuppliersModule,
+    StocksModule,
+    ProductsModule,
+    SalesModule,
+    PaymentsModule,
+    ExpensesModule,
+    DashboardModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

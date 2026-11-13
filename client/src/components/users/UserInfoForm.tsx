@@ -1,8 +1,13 @@
+import { CalendarDays, IdCard, Phone, Save, UserRound } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { api, getErrorMessage, type UserDetail } from '../../lib/api'
 import { formatDate, formatPhone } from '../../lib/format'
 import { Alert } from '../Alert'
 import { TextField } from '../TextField'
+import { Button } from '../ui/Button'
+import { Card, CardBody, CardHeader } from '../ui/Card'
+import { InfoList } from '../ui/InfoList'
+import { useToast } from '../ui/useToast'
 
 type Props = {
   user: UserDetail
@@ -10,23 +15,23 @@ type Props = {
   onSaved: (user: UserDetail) => void
 }
 
+/** Nom et téléphone de l'utilisateur (modifiables avec users.update). */
 export function UserInfoForm({ user, canEdit, onSaved }: Props) {
+  const toast = useToast()
   const [name, setName] = useState(user.name)
   const [phone, setPhone] = useState(formatPhone(user.phone))
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
-    setSuccess(null)
     setSubmitting(true)
     try {
       const { data } = await api.patch<UserDetail>(`/users/${user.id}`, { name, phone })
       onSaved(data)
       setPhone(formatPhone(data.phone))
-      setSuccess('Informations enregistrées.')
+      toast.success('Informations enregistrées')
     } catch (err) {
       setError(getErrorMessage(err))
     } finally {
@@ -35,54 +40,36 @@ export function UserInfoForm({ user, canEdit, onSaved }: Props) {
   }
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6">
-      <h2 className="text-lg font-semibold text-slate-900">Informations</h2>
-
-      {canEdit ? (
-        <form onSubmit={handleSubmit} className="mt-4 max-w-md space-y-4">
-          <TextField
-            label="Nom complet"
-            required
-            minLength={2}
-            maxLength={120}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+    <Card>
+      <CardHeader icon={IdCard} title="Informations" />
+      <CardBody>
+        {canEdit ? (
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <TextField label="Nom complet" required minLength={2} maxLength={120} value={name} onChange={(e) => setName(e.target.value)} />
+            <TextField
+              label="Numéro de téléphone"
+              type="tel"
+              inputMode="tel"
+              required
+              hint="C'est son identifiant de connexion."
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+            {error && <Alert tone="error">{error}</Alert>}
+            <Button type="submit" variant="secondary" icon={Save} loading={submitting}>
+              Enregistrer
+            </Button>
+          </form>
+        ) : (
+          <InfoList
+            items={[
+              { icon: UserRound, label: 'Nom', value: user.name },
+              { icon: Phone, label: 'Téléphone', value: formatPhone(user.phone) },
+              { icon: CalendarDays, label: 'Créé le', value: formatDate(user.createdAt) },
+            ]}
           />
-          <TextField
-            label="Téléphone"
-            type="tel"
-            inputMode="tel"
-            required
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-          />
-          <p className="text-sm text-slate-500">Créé le {formatDate(user.createdAt)}</p>
-          {error && <Alert tone="error">{error}</Alert>}
-          {success && <Alert tone="success">{success}</Alert>}
-          <button
-            type="submit"
-            disabled={submitting}
-            className="rounded-lg bg-blue-700 px-4 py-2 font-medium text-white hover:bg-blue-800 disabled:opacity-60"
-          >
-            {submitting ? 'Enregistrement…' : 'Enregistrer'}
-          </button>
-        </form>
-      ) : (
-        <dl className="mt-4 grid gap-4 sm:grid-cols-3">
-          <div>
-            <dt className="text-sm text-slate-500">Nom</dt>
-            <dd className="font-medium text-slate-900">{user.name}</dd>
-          </div>
-          <div>
-            <dt className="text-sm text-slate-500">Téléphone</dt>
-            <dd className="font-medium text-slate-900">{formatPhone(user.phone)}</dd>
-          </div>
-          <div>
-            <dt className="text-sm text-slate-500">Créé le</dt>
-            <dd className="font-medium text-slate-900">{formatDate(user.createdAt)}</dd>
-          </div>
-        </dl>
-      )}
-    </section>
+        )}
+      </CardBody>
+    </Card>
   )
 }

@@ -1,4 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router'
+import { LoadingState } from '../components/ui/Loading'
 import { useAuth } from './useAuth'
 
 /**
@@ -11,15 +12,15 @@ export function ProtectedRoute() {
 
   if (auth.status === 'loading') {
     return (
-      <div className="flex min-h-svh items-center justify-center text-slate-500">
-        Chargement…
+      <div className="flex min-h-svh items-center justify-center">
+        <LoadingState label="Ouverture de votre session…" />
       </div>
     )
   }
 
   if (auth.status === 'anonymous') {
     // On mémorise la page demandée pour y revenir après la connexion.
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+    return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />
   }
 
   return <Outlet />

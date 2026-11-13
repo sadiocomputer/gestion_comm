@@ -1,12 +1,21 @@
-import { Link } from 'react-router'
+import { House, MapPinOff } from 'lucide-react'
+import { ButtonLink } from '../components/ui/Button'
+import { EmptyState } from '../components/ui/EmptyState'
 
 export function NotFoundPage() {
   return (
-    <main className="mx-auto max-w-xl px-4 py-16 text-center">
-      <h1 className="text-2xl font-semibold text-slate-900">Page introuvable</h1>
-      <Link to="/" className="mt-6 inline-block text-blue-700 underline">
-        Retour à l'accueil
-      </Link>
+    <main className="flex min-h-svh items-center justify-center px-4">
+      <EmptyState
+        icon={MapPinOff}
+        tone="slate"
+        title="Page introuvable"
+        description="Cette page n'existe pas ou a été déplacée."
+        action={
+          <ButtonLink to="/" icon={House}>
+            Retour à l'accueil
+          </ButtonLink>
+        }
+      />
     </main>
   )
 }

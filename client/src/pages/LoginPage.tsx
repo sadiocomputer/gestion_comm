@@ -1,7 +1,20 @@
+import { LogIn, Package, ShoppingCart, Wallet } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router'
 import { useAuth } from '../auth/useAuth'
+import { Alert } from '../components/Alert'
+import { TextField } from '../components/TextField'
+import { Button } from '../components/ui/Button'
+import { LogoFull } from '../components/ui/Logo'
+import { PasswordField } from '../components/ui/PasswordField'
 import { getErrorMessage } from '../lib/api'
+import { SHOP } from '../lib/shop'
+
+const BENEFITS = [
+  { icon: ShoppingCart, text: 'Vendez et imprimez vos factures en quelques secondes' },
+  { icon: Package, text: 'Suivez votre stock, sans cahier' },
+  { icon: Wallet, text: 'Sachez qui vous doit de l’argent' },
+]
 
 export function LoginPage() {
   const auth = useAuth()
@@ -34,59 +47,79 @@ export function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-svh items-center justify-center px-4">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-      >
-        <h1 className="text-xl font-semibold text-slate-900">Connexion</h1>
+    <main className="flex min-h-svh">
+      {/* Panneau de présentation (ordinateur) */}
+      <section className="relative hidden flex-1 flex-col justify-between overflow-hidden bg-gradient-to-br from-blue-600 to-blue-800 p-12 text-white lg:flex">
+        <div className="flex items-center gap-4">
+          <LogoFull className="h-24 w-24 rounded-2xl shadow-lg ring-4 ring-white/20" />
+          <span className="text-lg font-bold">{SHOP.name}</span>
+        </div>
+        <div className="max-w-md">
+          <h2 className="text-4xl leading-tight font-bold">Votre commerce, simplement.</h2>
+          <ul className="mt-8 space-y-5">
+            {BENEFITS.map(({ icon: Icon, text }) => (
+              <li key={text} className="flex items-center gap-4 text-lg text-blue-50">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15">
+                  <Icon size={22} aria-hidden />
+                </span>
+                {text}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <p className="text-sm text-blue-200">Gestion commerciale · Nimbasoft</p>
+        {/* Formes décoratives */}
+        <span className="pointer-events-none absolute -right-24 -bottom-24 h-96 w-96 rounded-full bg-white/5" aria-hidden />
+        <span className="pointer-events-none absolute top-24 -right-10 h-40 w-40 rounded-full bg-white/5" aria-hidden />
+      </section>
 
-        <label className="block">
-          <span className="text-sm text-slate-700">Téléphone</span>
-          <input
-            type="tel"
-            inputMode="tel"
-            autoComplete="username"
-            required
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="620 00 00 00"
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-blue-600 focus:outline-none"
-          />
-        </label>
+      {/* Formulaire */}
+      <section className="flex flex-1 items-center justify-center px-5 py-10">
+        <div className="w-full max-w-sm">
+          <div className="mb-8 flex flex-col items-center text-center lg:items-start lg:text-left">
+            <LogoFull className="mb-5 h-32 w-32 rounded-3xl shadow-md lg:hidden" />
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Connexion</h1>
+            <p className="mt-1.5 text-[15px] text-slate-500">
+              Entrez votre numéro de téléphone et votre mot de passe.
+            </p>
+          </div>
 
-        <label className="block">
-          <span className="text-sm text-slate-700">Mot de passe</span>
-          <input
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-blue-600 focus:outline-none"
-          />
-        </label>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <TextField
+              label="Numéro de téléphone"
+              type="tel"
+              inputMode="tel"
+              autoComplete="username"
+              required
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="620 00 00 00"
+            />
 
-        {notice && !error && (
-          <p className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-800">
-            {notice}
-          </p>
-        )}
+            <PasswordField
+              label="Mot de passe"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
 
-        {error && (
-          <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error}
-          </p>
-        )}
+            {notice && !error && <Alert tone="info">{notice}</Alert>}
+            {error && <Alert tone="error">{error}</Alert>}
 
-        <button
-          type="submit"
-          disabled={submitting || auth.status === 'loading'}
-          className="w-full rounded-lg bg-blue-700 px-4 py-2 font-medium text-white hover:bg-blue-800 disabled:opacity-60"
-        >
-          {submitting ? 'Connexion…' : 'Se connecter'}
-        </button>
-      </form>
+            <Button
+              type="submit"
+              size="lg"
+              fullWidth
+              icon={LogIn}
+              loading={submitting}
+              disabled={auth.status === 'loading'}
+            >
+              Se connecter
+            </Button>
+          </form>
+        </div>
+      </section>
     </main>
   )
 }

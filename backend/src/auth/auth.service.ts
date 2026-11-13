@@ -1,10 +1,16 @@
 import { createHash, randomBytes } from 'crypto';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Response } from 'express';
-import { IsNull, Repository } from 'typeorm';
+import { IsNull, LessThan, Repository } from 'typeorm';
 import { RolesService, UserAccess } from '../roles/roles.service';
 import { User } from '../users/entities/user.entity';
 import { PublicUser, UsersService } from '../users/users.service';
@@ -14,9 +20,13 @@ import { RefreshToken } from './entities/refresh-token.entity';
 export type SessionUser = PublicUser & UserAccess;
 
 const REUSE_GRACE_MS = 10_000;
+const PURGE_EVERY_MS = 6 * 60 * 60 * 1000; // 6 heures
 
 @Injectable()
-export class AuthService {
+export class AuthService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(AuthService.name);
+  private purgeTimer?: NodeJS.Timeout;
+
   constructor(
     private readonly usersService: UsersService,
     private readonly rolesService: RolesService,
@@ -25,6 +35,36 @@ export class AuthService {
     @InjectRepository(RefreshToken)
     private readonly refreshTokens: Repository<RefreshToken>,
   ) {}
+
+  /** Au démarrage, puis toutes les 6 h : suppression des jetons expirés. */
+  onModuleInit() {
+    void this.purgeExpiredTokens();
+    this.purgeTimer = setInterval(() => void this.purgeExpiredTokens(), PURGE_EVERY_MS);
+    // unref : ce minuteur n'empêche pas le processus de s'arrêter.
+    this.purgeTimer.unref();
+  }
+
+  onModuleDestroy() {
+    if (this.purgeTimer) clearInterval(this.purgeTimer);
+  }
+
+  /**
+   * Un jeton expiré ne peut plus servir : le garder ne fait que grossir la
+   * table. Les jetons révoqués NON expirés sont conservés, car ils servent à
+   * détecter la réutilisation d'un jeton volé.
+   */
+  async purgeExpiredTokens(): Promise<number> {
+    try {
+      const result = await this.refreshTokens.delete({ expiresAt: LessThan(new Date()) });
+      const count = result.affected ?? 0;
+      if (count > 0) this.logger.log(`${count} jeton(s) de session expiré(s) supprimé(s).`);
+      return count;
+    } catch (error) {
+      // Une purge ratée ne doit jamais faire tomber l'application.
+      this.logger.warn(`Purge des jetons impossible : ${String(error)}`);
+      return 0;
+    }
+  }
 
   async login(phone: string, password: string) {
     const user = await this.usersService.validateCredentials(phone, password);

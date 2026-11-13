@@ -2,6 +2,8 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module';
 import { normalizeGuineaPhone } from '../common/utils/phone';
+import { ExpensesService } from '../expenses/expenses.service';
+import { UnitsService } from '../products/units.service';
 import { RolesService } from '../roles/roles.service';
 import { UsersService } from '../users/users.service';
 
@@ -27,6 +29,12 @@ async function seed() {
 
     await rolesService.syncCatalog();
     console.log('Permissions et rôles synchronisés.');
+
+    const addedUnits = await app.get(UnitsService).seedDefaults();
+    console.log(`Unités : ${addedUnits} ajoutée(s).`);
+
+    const addedCategories = await app.get(ExpensesService).seedDefaults();
+    console.log(`Catégories de dépenses : ${addedCategories} ajoutée(s).`);
 
     const adminPhone = normalizeGuineaPhone(
       config.getOrThrow<string>('ADMIN_PHONE'),

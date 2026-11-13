@@ -79,6 +79,22 @@ class EnvironmentVariables {
   })
   CORS_ORIGIN: string;
 
+  // Nombre de proxys devant l'application (ex. 1 derrière Nginx).
+  // 0 = accès direct (développement). Sert à connaître la vraie IP du client
+  // (limite de tentatives de connexion par IP).
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(5)
+  TRUST_PROXY: number = 0;
+
+  // Dossier du frontend compilé (client/dist). Renseigné : NestJS sert
+  // l'application web sur le même port que l'API. Vide : API seule
+  // (développement avec Vite sur le port 5173).
+  @IsOptional()
+  @IsString()
+  CLIENT_DIST?: string;
+
   // Utilisées uniquement par "npm run seed".
   @IsOptional()
   @IsString()

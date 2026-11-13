@@ -59,6 +59,11 @@ export class RolesService {
     return new Set(rows.map((row) => row.code));
   }
 
+  /** Pour adapter une réponse (ex. masquer les prix d'achat). */
+  async userHasPermission(userId: number, code: string): Promise<boolean> {
+    return (await this.getUserPermissionCodes(userId)).has(code);
+  }
+
   async getUserAccess(userId: number): Promise<UserAccess> {
     const roles = (await this.dataSource.query(
       `SELECT r.id, r.name
